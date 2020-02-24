@@ -162,3 +162,5 @@ SQL 언어를 확장하기 위해 사용하는 컴퓨터 프로그래밍 언어 중 하나이다.
 -- 데이터베이스에서 NULL은 "unknown"값이다. => 알려지지 않은 내용이기 때문에
 
 SELECT * FROM EMP;
+
+SELECT * FROM EMP E, EMP M WHERE E.MGR = M.EMPNO;
