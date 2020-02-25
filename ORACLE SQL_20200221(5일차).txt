@@ -1,0 +1,605 @@
+-- 20200225(5일차)
+DESC USER_SEQUENCES;
+SELECT SEQUENCE_NAME, MIN_VALUE, MAX_VALUE, INCREMENT_BY, CYCLE_FLAG
+FROM USER_SEQUENCES; -- 유저가 만든 시퀀스를 조회
+
+-- 시퀀스 값을 알아보는 CURRVAL(CURRENT VALUE)과 
+
+SELECT DEPT_DEPTNO_SEQ.NEXTVAL FROM DUAL; -- 10씩 증가
+SELECT DEPT_DEPTNO_SEQ.CURRVAL FROM DUAL; -- 현재 수열
+
+CREATE SEQUENCE EMP_SEQ
+START WITH 1
+INCREMENT BY 1
+MAXVALUE 100000;
+
+DROP TABLE EMP01;
+CREATE TABLE EMP01 (
+    EMPNO NUMBER(4) PRIMARY KEY,
+    ENAME VARCHAR(10), --ANSI 자료형, VARCHAR2와 같다  
+    HIREDATE DATE
+   
+);
+
+INSERT INTO EMP01 VALUES(EMP_SEQ.NEXTVAL, 'JULIA', SYSDATE);
+-- INDEX는 구별 용도
+-- PRIMARY KEY 데이터를 넣을 때 시퀀스(Sequence)를 사용
+SELECT * FROM EMP01;
+
+DROP SEQUENCE EMP_SEQ;
+
+DROP SEQUENCE DEPT_DEPTNO_SEQ;
+
+CREATE SEQUENCE DEPT_DEPTNO_SEQ
+START WITH 10
+INCREMENT BY 10
+MAXVALUE 30;
+
+SELECT DEPT_DEPTNO_SEQ.NEXTVAL FROM DUAL;
+
+ALTER SEQUENCE DEPT_DEPTNO_SEQ MAXVALUE 100;
+
+CREATE SEQUENCE ORDERS_SEQ
+START WITH 1000
+INCREMENT BY 1
+MAXVALUE 99999999;
+
+SELECT ORDERS_SEQ.NEXTVAL FROM DUAL;
+
+SELECT * FROM ORDERS_SEQ;
+
+--1. 최소값 1, 최대값 99999999, 1000부터 시작해서 1씩 증가하는 ORDERS_SEQ 라는 
+-- 시퀀스를 만들 어보자. 
+-- <정답>
+CREATE SEQUENCE ORDERS_SEQ
+MINVALUE 1
+MAXVALUE 99999999
+INCREMENT BY 1
+START WITH 1000;
+
+-- INSERT, DELETE, UPDATE(DML언어 자주 사용)를 자주하는 데이터베이스는 속도가 느려진다.
+
+DESC USER_IND_COLUMNS;
+
+SELECT INDEX_NAME, TABLE_NAME, COLUMN_NAME
+FROM USER_IND_COLUMNS
+WHERE TABLE_NAME IN ('EMP', 'EMP01');
+
+--사원 테이블 복사
+DROP TABLE EMP01;
+CREATE TABLE EMP01
+AS
+SELECT * FROM EMP;
+SELECT * FROM EMP01;
+
+
+-- 인덱스가 아닌 컬럼으로 검색하기
+INSERT INTO EMP01
+SELECT * FROM EMP01; -- 한 번 실행할 때마다 해당 테이블 데이터 추가
+
+INSERT INTO EMP01(EMPNO, ENAME) VALUES(1111,'SYJ');
+
+SELECT COUNT(*) FROM EMP01;
+
+--SET SERVEROUTPUT ON
+--SET TIMING ON
+SELECT DISTINCT EMPNO, ENAME
+FROM EMP01
+WHERE ENAME = 'SYJ';
+
+CREATE INDEX IDX_EMP01_ENAME ON EMP01(ENAME);
+
+DROP INDEX IDX_EMP01_ENAME;
+
+-- 17. 사용자 관리
+
+-- sys 권한이 더 쌤 > SYSTEM
+
+SHOW USER;
+
+GREATE USER USER10 IDENTIFIED BY USER10;
+
+SHOW USER;
+GRANT SELECT ON EMP TO USER10; -- 그 다음에 cmd에서 SELECT * FROM SCOTT.EMP;
+-- EMP라는 객체를 유저에게 부여해 주어야 접근 가능.
+REVOKE SELECT ON EMP FROM USER10; -- 권한을 철회
+
+GRANT SELECT ON EMP TO USER10; -- 셀렉트 가능, 다른 유저 접근 권한 부여 못함.
+GRANT SELECT ON EMP TO USER10 -- 셀렉트 가능, 다른 유저에게 SELECT 권한 부여 가능
+WITH GRANT OPTION;
+
+-- 스키마(SCHEMA) => SCOTT이 보유하고 있는 모든 객체, 스키마 // 일반적으론 사용자 계정
+
+SELECT * FROM SCOTT.EMP; 
+-- SCOTT => 자신의 계정안에서 불러오는 경우 스키마 생략(SCOTT) 가능
+SELECT * FROM EMP;
+
+-- WITH GRANT OPTION : 사용자에게 객체 권한을 부여
+
+GRANT SELECT ON SCOTT.EMP TO USER02 WITH GRANT OPTION;
+
+CREATE USER USER11 IDENTIFIED BY USER11;
+GRANT CREATE SESSION TO USER11;
+
+SET SERVEROUTPUT ON -- 출력해 주는 내용을 화면에 보여주도록 설정한다. 
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Hello World!'); --클래스안의 메소드
+END;
+-- 스토어 프로시져
+
+VEMPNO NUMBER(4);
+VENAME VARCHAR2(10);
+
+VEMPNO := 7788;
+VENAME := 'SCOTT';
+
+-- HOST
+-- DIR
+-- DIR *.SQL
+-- ED EXAM01
+
+--SET SERVEROUTPUT ON
+--DECLARE
+--	VEMPNO NUMBER(4);
+--	VENAME VARCHAR2(10);
+--BEGIN
+--	VEMPNO := 7788;
+--	VENAME := 'SCOTT';
+--	DBMS_OTPUT.PUT_LINE('사번 / 이름');
+--	DBMS_OTPUT.PUT_LINE('------------');
+--	DBMS_OTPUT.PUT_LINE(VEMPNO || ' / ' || VENAME);
+--END;
+--/
+
+-- @EXAM01 => 파일 돌릴 때 사용
+
+SET SERVEROUTPUT ON
+DECLARE
+	VEMPNO NUMBER(4);
+	VENAME VARCHAR2(10);
+BEGIN
+	VEMPNO := 7788;
+	VENAME := 'SCOTT';
+	DBMS_OUTPUT.PUT_LINE('사번 / 이름');
+	DBMS_OUTPUT.PUT_LINE('------------');
+	DBMS_OUTPUT.PUT_LINE(VEMPNO || ' / ' || VENAME);
+END;
+/
+
+SELECT * FROM EMP;
+
+SET SERVEROUTPUT ON
+DECLARE
+    VEMPNO EMP.EMPNO%TYPE; -- 레퍼런스 변수 선언
+    VENAME EMP.ENAME%TYPE;
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('사번 / 이름');
+    DBMS_OUTPUT.PUT_LINE('-----------');
+    
+    SELECT EMPNO, ENAME INTO VEMPNO, VENAME
+    FROM EMP
+    WHERE ENAME = 'SCOTT';
+
+    DBMS_OUTPUT.PUT_LINE(VEMPNO || ' / ' || VENAME);
+
+END;
+/
+
+SELECT EMPNO, ENAME FROM EMP
+WHERE ENAME = 'SCOTT';                     
+
+SET SERVEROUTPUT ON -- 출력을 콘솔에 나오게 함.
+DECLARE
+    -- 테이블 타입을 정의
+    TYPE ENAME_TABLE_TYPE IS TABLE OF EMP.ENAME%TYPE
+        INDEX BY BINARY_INTEGER; 
+        -- 테이블 타입으로 만듬(배열), 배열은 인덱스로 넣기 때문에 의례적으로 이렇게 선언한다.
+        --=> VARCHAR들이 배열 형태로 되어 있는
+        -- ex) int num = 1;
+        --     int[] nums = {1, 2, 3, 4, 5, 6};
+        --     System.out.println(nums[0]) // 1
+    TYPE JOB_TABLE_TYPE IS TABLE OF EMP.JOB%TYPE
+        INDEX BY BINARY_INTEGER;
+    
+    -- 테이블 타입으로 변수 선언 (자바의 배열타입과 같다!)
+    -- String[] str = new String[10] ==> str 변수가 배열 타입
+    
+    ENAME_TABLE ENAME_TABLE_TYPE;
+    JOB_TABLE JOB_TABLE_TYPE;
+    I BINARY_INTEGER := 0;
+BEGIN
+    FOR K IN (SELECT ENAME, JOB FROM EMP) LOOP -- FOR LOOP END LOOP / SELECT 결과를 
+        I := I + 1;
+        ENAME_TABLE(I) := K.ENAME; -- 배열에 K.ENAME을 차례로 넣겠다. / ENAME_TABLE(1) := 'SMITH'
+        JOB_TABLE(I) := K.JOB;     --                                 / JOB.TABLE(1) := 'CLERK'
+    END LOOP;
+--Java
+-- for(int i : nums) {
+--      System.out.println(i);
+}
+--결과
+
+-- 1
+-- 2
+-- 3
+-- 4
+-- 5
+-- 6 
+-- FOR(INT I : 배열변수) {
+    
+}
+       
+    -- 테이블에 저장된 내용을 출력
+    FOR J IN 1..I LOOP -- 1..I => 1부터 I까지 들어가겠다. I = 13
+        DBMS_OUTPUT.PUT_LINE(RPAD(ENAME_TABLE(J),12) || ' / ' ||
+        RPAD(JOB_TABLE(J), 9)); -- 변수 사이즈
+    END LOOP;
+END;
+/
+
+BEGIN
+
+END;
+-- 스톡 프로시저를 위한 단계
+
+Student s1 = new Student();
+int[] nums = {1,2,3,4,5};
+
+public class Student {
+        private int sno;
+        private String phone;
+        private String name;
+        
+        public Student() {
+        
+        }
+        public Student(int sno, String phone, String name) {
+            this.sno = sno;
+            this phone = phone;
+            this.name = name;
+            }
+}
+//
+Student s1 = new Strudent(1, "010-5522-2244", "유재석"); -- 여러개의 타입을 보관 가능
+System.out.println(s1.sno): // 1
+System.out.println(s1.phone): // 2
+System.out.println(s1.name): // 3
+
+
+
+select * from EMP;
+
+SET SERVEROUTPUT ON 
+DECLARE   -- 레코드 타입을 정의
+    TYPE emp_record_type IS RECORD(     
+    v_empno    emp.empno%TYPE,     
+    v_ename    emp.ename%TYPE,     
+    v_job    emp.job%TYPE,     
+    v_deptno  emp.deptno%TYPE); 
+ 
+  -- 레코드로 변수 선언
+  emp_record  emp_record_type; 
+BEGIN   -- SCOTT 사원의 정보를 레코드 변수에 저장   
+SELECT empno,ename, job, deptno     
+    INTO emp_record     
+    FROM emp     
+    WHERE ename = UPPER('SCOTT'); 
+-- 스칼라 변수
+-- VEMPNO NUMBER(4);
+VENAME VARCHAR2(10);
+
+int vempno;
+String vename;
+
+레퍼런스 변수
+VEMPNO EMP.EMPNO%TYPE;
+VENAME EMP.ENAME%TYPE;
+
+Student s1 = new Student();
+
+3. 테이블타입 변수
+TYPE ENAME_TABLE_TYPE IS TABLE OF EMP.ENAME%TYPE
+    INDEX BY BINARY_INTEGER;
+ENAME_TABLE ENAME_TABLE_TYPE;
+
+int[] ename_table
+
+4. 레코드 타입 변수
+TYPE EMP_RECORD_TYPE IS RECORD (
+    V_EMPNO EMP.EMPNO%TYPE.
+    V_ENAME EMP.ENAME%TYPE
+);
+EMP_RECORD
+
+public class EmpRecordType {
+        int v_empno;
+        String v_ename;
+}
+
+EmpRecordType emp_record;
+
+--IF~THEN~END IF
+SET SERVEROUTPUT ON
+DECLARE
+    VEMPNO NUMBER(4);
+    VENAME VARCHAR2(20);
+    VDEPTNO EMP.DEPTNO%TYPE;
+    VDNAME VARCHAR2(20) := NULL;
+    
+BEGIN
+    SELECT EMPNO, ENAME, DEPTNO INTO VEMPNO, VENAME, VDEPTNO
+    FROM EMP
+    WHERE EMPNO = 7788;
+    
+    IF(VDEPTNO = 10) THEN
+        VDNAME := 'ACCOUNTING';
+    END IF;
+    IF(VDEPTNO = 20) THEN
+        VDNAME := 'RESEARCH';
+    END IF;
+    IF(VDEPTNO = 30) THEN
+        VDNAME := 'SALES';
+    END IF;
+    IF(VDEPTNO = 30) THEN
+        VDNAME := 'OPERATIONS';
+    END IF;
+    
+    DBMS_OUTPUT.PUT_LINE('사번    이름  부서명');
+    DBMS_OUTPUT.PUT_LINE(VEMPNO || '    ' || VENAME || '    ' || VDNAME );
+END;
+/
+
+SELECT EMPNO, ENAME, DEPTNO FROM EMP
+WHERE EMPNO=7788;
+
+SET SERVEROUTPUT ON
+DECLARE
+    N NUMBER := 1;
+BEGIN
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(N);
+        N := N + 1;
+        IF N > 5 THEN
+            EXIT;
+        END IF;
+    END LOOP;
+
+END;
+/
+
+SET SERVEROUTPUT ON
+DECLARE
+BEGIN
+    FOR N IN 1..5 LOOP
+        DBMS_OUTPUT.PUT_LINE(N);
+    END LOOP;
+END;
+/
+
+SET SERVEROUTPUT ON
+DECLARE
+    N NUMBER := 1;
+BEGIN
+    WHILE N <= 5 LOOP
+        DBMS_OUTPUT.PUT_LINE(N);
+         N := N + 1;     
+    IF N > 5 THEN       
+    EXIT;
+    END IF;   
+    END LOOP; 
+END; 
+/
+
+DROP TABLE EMP01;
+
+CREATE TABLE EMP01
+AS
+SELECT * FROM EMP;
+
+SELECT * FROM EMP01;
+
+-- 저장 프로시저 (STORED PROCEDURE)
+CREATE OR REPLACE PROCEDURE DEL_ALL -- DEL_ALL이라는 프로시져 형성
+IS
+BEGIN
+    DELETE FROM EMP01; -- 해당 내용을 시행하는 프로시져 형성(= JAVA 메소드)
+END;
+/
+
+EXECUTE DEL_ALL; -- 프로시져 시행 명령문
+
+DROP TABLE EMP01;
+CREATE TABLE EMP01
+AS
+SELECT * FROM EMP;
+SELECT * FROM EMP01;
+
+CREATE OR REPLACE PROCEDURE  
+DEL_ENAME(VENAME EMP01.ENAME%TYPE) 
+IS 
+BEGIN 
+DELETE FROM EMP01 WHERE ENAME=VENAME; 
+END; 
+/ 
+
+SELECT * FROM EMP01
+WHERE ENAME = 'SMITH';
+
+EXECUTE DEL_ENAME('SMITH');
+
+DROP PROCEDURE SEL_EMPNO;
+CREATE OR REPLACE PROCEDURE SEL_EMPNO(  
+   VEMPNO IN EMP.EMPNO%TYPE, -- 입력으로 들어오는 변수
+   VENAME OUT EMP.ENAME%TYPE, -- 출력으로 나가는 변수들(OUT)
+   VSAL OUT EMP.SAL%TYPE,
+   VJOB OUT EMP.JOB%TYPE
+)
+IS
+    -- 로컬변수 선정
+BEGIN
+    SELECT ENAME, SAL, JOB INTO VENAME, VSAL, VJOB
+    FROM EMP
+    WHERE EMPNO = VEMPNO;
+
+END;
+/
+
+
+VARIABLE VAR_ENAME VARCHAR2(15); -- 외부에 변수 선언
+VARIABLE VAR_SAL NUMBER;
+VARIABLE VAR_JOB VARCHAR2(9);
+
+EXECUTE SEL_EMPNO(7788, :VAR_ENAME, :VAR_SAL, :VAR_JOB);
+PRINT VAR_ENAME;
+PRINT VAR_SAL;
+PRINT VAR_JOB;
+
+-- VOID => STORED 프로시저
+-- RETURN => RETURN 프로시저
+
+CREATE OR REPLACE FUNCTION CAL_BONUS(VEMPNO IN EMP.EMPNO%TYPE)
+    RETURN NUMBER -- 리턴타입 작성
+IS
+    VSAL NUMBER(7,2); -- 로컬 변수 선언
+BEGIN
+    SELECT SAL INTO VSAL
+    FROM EMP
+    WHERE EMPNO = VEMPNO;
+    
+    RETURN (VSAL * 2);
+END;
+/
+
+VARIABLE VAR_RES NUMBER;
+EXECUTE : VAR_RES := CAL_BONUS(7788);
+PRINT VAR_RES;
+
+SELECT SAL, CAL_BONUS(7788) FROM EMP WHERE EMPNO = 7788;
+
+SELECT * FROM EMP;
+
+-- 예제) 특별 보너스를 지급하기 위한 저장 함수 작성하기 (보너스는 급여의 200%)
+CREATE OR REPLACE FUNCTION CAL_BONUS (VEMPNO IN EMP.EMPNO%TYPE)
+    RETURN NUMBER -- 함수 CAL_BONUS에 의해 되돌려 지는 값은 수치 데이터
+IS
+    VSAL NUMBER(7, 2); -- 함수 CAL_BONUS 내부에서만 사용할 지역변수 VSAL 선언
+BEGIN
+    SELECT SAL INTO VSAL -- 매개변수 VEMPNO로 사원을 조회하여 컬럼값을 얻어 VSAL에 저장
+    FROM EMP
+    WHERE EMPNO = VEMPNO;
+    RETURN (VSAL * 200);
+END;
+
+VARIABLE VAR_SAL NUMBER; -- 함수 결과값을 저장할 변수 선언
+EXECUTE : VAR_SAL := CAL_BONUS(7788);
+
+PRINT VAR_SAL;
+
+--문제) 사원명으로 검색하여 해당 사원의 직급을 얻어오는 저장 함수를 작성
+--
+--출처: https://mainichibenkyo.tistory.com/96 [안드로이드는 전자양의 꿈을 꾸는가]
+
+CREATE OR REPLACE FUNCTION SEL_EMPNAME02 (VENAME IN EMP.ENAME%TYPE)
+  RETURN VARCHAR
+IS  
+  VJOB EMP.JOB%TYPE; 
+BEGIN
+  SELECT JOB INTO VJOB
+  FROM EMP
+  WHERE ENAME = VENAME;  
+  RETURN VJOB; 
+END;
+/
+
+VARIABLE VAR_JOB VARCHAR2;
+EXECUTE : VAR_JOB := SEL_EMPNAME02('SCOTT');
+
+PRINT VAR_JOB;
+
+---------------------정답
+CREATE OR REPLACE FUNCTION SEL_EMPNAME02( VENAME IN EMP.ENAME%TYPE)
+    RETURN VARCHAR2
+IS
+    VJOB EMP.JOB%TYPE;  --로컬변수 선언
+BEGIN
+    SELECT JOB INTO VJOB
+    FROM EMP
+    WHERE ENAME = VENAME;
+    RETURN VJOB;
+    
+END;
+/
+
+VARIABLE VAR_JOB VARCHAR2(9);
+EXECUTE :VAR_JOB := SEL_EMPNAME02('SCOTT');
+PRINT VAR_JOB;
+
+)
+-- 추가적 커서, 트리거, 데이터 모델링, JDBC프로그램(JAVA/ORACLE DB 연동)
+-- 주로 DQL, DML, DDL
+-- stored procedure를 잘 안씀 => 자바에서 들어와서 처리하기 때문에
+
+-- 20200225(화)5일차
+
+SHOW USER;
+
+CREATE USER USER10 IDENTIFIED BY USER10;
+
+GRANT CREATE SESSION TO USER10;
+
+CREATE TABLE T1 (
+C1 NUMBER(4)
+);
+
+GRANT CREATE TABLE TO USER10; -- 권한(PRIVILAGE)
+-- 시스템 테이블이라서 권한을 하나 더 줘야함
+GRANT RESOURCE TO USER10; --롤(ROLE) : 권한들의 집합
+-- RESOURCE의 ROLE에는 여러 개의 권한들이 들어있음.
+
+--17.4 (테이블, 뷰, 인덱스 => )객체들에 권한
+
+SHOW USER;
+
+CREATE USER USER10 IDENTIFIED BY USER10;
+
+SHOW USER;
+GRANT SELECT ON EMP TO USER10; -- 그 다음에 cmd에서 SELECT * FROM SCOTT.EMP;
+-- EMP라는 객체를 유저에게 부여해 주어야 접근 가능.
+REVOKE SELECT ON EMP FROM USER10; -- 권한을 철회
+
+GRANT SELECT ON EMP TO USER10; -- 셀렉트 가능, 다른 유저 접근 권한 부여 못함.
+GRANT SELECT ON EMP TO USER10 -- 셀렉트 가능, 다른 유저에게 SELECT 권한 부여 가능
+WITH GRANT OPTION;
+
+-- 스키마(SCHEMA) => SCOTT이 보유하고 있는 모든 객체, 스키마 // 일반적으론 사용자 계정
+
+SELECT * FROM SCOTT.EMP; 
+-- SCOTT => 자신의 계정안에서 불러오는 경우 스키마 생략(SCOTT) 가능
+SELECT * FROM EMP;
+
+-- WITH GRANT OPTION : 사용자에게 객체 권한을 부여
+
+GRANT SELECT ON SCOTT.EMP TO USER02 WITH GRANT OPTION;
+
+CREATE USER USER11 IDENTIFIED BY USER11;
+GRANT CREATE SESSION TO USER11;
+
+-- 1. 전산실에 새로 입사한 사원에게 새로운 계정을 생성해 주려고 합니다.
+-- 아래의 요구 사항을 만족하는 SQL문을 각각 작성 하세요 ?
+-- [출처] [오라클연습] 07. 계정생성, 권한부여|작성자 kjy48048
+
+CREATE USER WOMAN IDENTIFIED BY TIGER;
+GRANT CREATE SESSION TO WOMAN WITH ADMIN OPTION;
+GRANT CONNECT, RESOURCE, DBA TO WOMAN;
+
+-- 2. user01 계정(비밀번호: tiger)을 생성하고 해당 계정에게 
+-- 오라클 데이터 베이스에 접속해서, 테이블을 생성할 수 있는 권한을 부여하시오.
+-- [출처] [오라클연습] 07. 계정생성, 권한부여|작성자 kjy48048
+
+CREATE USER USER01 IDENTIFIED BY TIGER;
+CONN SYSTEM/SYS
+GRANT CREATE TABLE TO USER01;
+
+CREATE USER USER01 IDENTIFIED BY tiger;
+GRANT CREATE SESSION, CREATE TABLE TO USER01;
+GRANT RESOURCE TO USER01;

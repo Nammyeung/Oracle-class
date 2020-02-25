@@ -1,0 +1,38 @@
+1. 스칼라 타입 변수
+VEMPNO NUMBER(4);
+VENAME VARCHAR2(10);
+
+int vempno;
+String vename;
+
+
+2. 레퍼런스 타입 변수
+VEMPNO EMP.EMPNO%TYPE;
+VENAME EMP.ENAME%TYPE;
+
+Student s1 = new Student();
+
+
+3. 테이블 타입 변수
+TYPE ENAME_TABLE_TYPE IS TABLE OF EMP.ENAME%TYPE
+  	INDEX BY BINARY_INTEGER;
+ENAME_TABLE ENAME_TABLE_TYPE;
+
+int[] ename_table;
+
+
+4. 레코드 타입 변수
+TYPE EMP_RECORD_TYPE IS RECORD (
+	V_EMPNO	EMP.EMPNO%TYPE,
+	V_ENAME EMP.ENAME%TYPE 
+);
+EMP_RECORD EMP_RECORD_TYPE;
+
+public class EmpRecordType {
+	int v_empno;
+	String v_ename;
+}
+
+EmpRecordType emp_record;
+
+
