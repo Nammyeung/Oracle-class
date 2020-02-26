@@ -1,0 +1,377 @@
+질의문 테스트
+1.
+1) 도서번호가 1인 도서의 이름
+select bookname from book where bookid = 1;
+
+2) 가격이 20,000원 이상인 도서의 이름
+select bookname from book where price >= 20000;
+
+3) 박지성의 총 구매액
+select sum(saleprice) from orders 
+where custid = (select custid from customer where name = '박지성');
+
+4) 박지성이 구매한 도서의 수
+select count(bookid) from orders 
+where custid = (select custid from customer where name = '박지성');
+
+-----------------------------------------------------------
+중복값 제거하기 위한 데이터 추가함
+insert into orders values (11, 1, 1, 6000, sysdate);
+
+// 중복되는 칼럼값이 있을때 한번만 나타내도록 하는 키워드
+select  count(distinct bookid) from orders 
+where custid = (select custid from customer where name = '박지성');
+
+5) 박지성이 구매한 도서의 출판사 수
+select count(distinct publisher) from book, orders 
+where book.bookid = orders.bookid 
+and custid = (select custid from customer where name = '박지성');
+
+// 잘못된 질의문
+select count(distinct publisher) from book 
+where bookid = (select bookid from orders where custid = (select custid from customer where name = '박지성'));
+
+//서브쿼리의 결과가 여러건일때 (다중행)는 다음의 연산자를 바로 사용할 수 없다(=, >=, <=, !=)
+다중행 연산자를 사용해야 함 
+in,
+any, some, all  >=, <= , > , < 
+
+// in 사용한 질의문
+select count(distinct publisher) from book 
+where bookid in (select bookid from orders where custid = (select custid from customer where name = '박지성'));
+
+6) 박지성이 구매한 도서의 이름, 가격, 정가와 판매가격의 차이 
+select bookname, price, (price - saleprice) 가격차이 
+from book, orders
+where book.bookid = orders.bookid 
+and custid = (select custid from customer where name = '박지성'); 
+
+//abs 양수만 나오게 하는것(음수나올경우를 대비해서)
+select bookname, price, abs(price-saleprice) 차이 
+from customer, book, orders 
+where customer.custid = orders.custid
+and book.bookid = orders.bookid 
+and name = '박지성';
+
+7) 박지성이 구매하지 않은 도서의 이름
+
+union 검색한 결과를 합치는 기능
+minus 검색한 결과에서 빼는 기능
+
+select bookname 
+from book 
+minus select bookname from book where bookid in 
+(select bookid from orders where custid = (select custid from customer where name = '박지성'));
+
+
+
+2. 
+
+1) 마당서점 도서의 총 개수 
+select count(bookid) from book;
+
+2) 마당서점에 도서를 출고하는 출판사의 총 개수
+select count(distinct publisher) from book;
+
+3) 모든 고객의 이름, 주소
+select name, address from customer;
+
+4) 2014년 7월 4일 ~ 7월 7일 사이에 주문받은 도서의 주문번호
+select orderid from orders 
+where orderdate >= '2014-07-04' 
+and orderdate <= '2014-07-07';
+
+select orderid from orders 
+where orderdate between '2014-07-04' and '2014-07-07';
+
+5) 2014년 7월 4일 ~ 7월 7일 사이에 주문받은 도서를 제외한 도서의 주문번호
+select orderid from orders 
+minus select orderid from orders 
+where orderdate >= '2014-07-04' 
+and orderdate <= '2014-07-07';
+
+select orderid from orders 
+where orderdate not between '2014-07-04' and '2014-07-07';
+
+6) 성이 '김'씨인 고객의 이름과 주소
+select name, address from customer 
+where '김' = substr(name,1,1);
+
+select name, address from customer 
+where name like '김%';
+
+7) 성이 '김'씨이고 이름이 '아'로 끝나는 고객의 이름과 주소
+
+like 연산자와 같이 사용하는 와일드카드 문자
+% : 모르는 0개의 글자 이상
+_ : 모르는 한글자
+
+select name, address from customer 
+where name like '김%' 
+and name like '%아';
+
+select name, address from customer 
+where name like '김%아';
+
+8) 주문하지 않는 고객의 이름(부속질의 사용)
+
+select name from customer
+minus select name from customer where cu
+
+(서브쿼리이용한것)
+주문한 고객의 id를 검색
+select distinct custid from orders
+본질의
+select name from customer 
+where custid not in (select distinct custid from orders);
+
+9) 주문 금액의 총액과 주문의 평균 금액
+select sum(saleprice) 총액, avg(saleprice) 평균 
+from orders;
+
+9-1) 박지성 고객의 2014년도의 주문 총금액의 평균금액을 출력
+select sum(saleprice) 총액, avg(saleprice) 평균 
+from orders o, customer c 
+where name = '박지성' 
+and to_char(orderdate, 'yyyy') = '2014' 
+and o.custid = c.custid;
+
+10) 고객의 이름과 고객별 구매액
+select name, sum(saleprice) 구매액 from customer, orders 
+where customer.custid = orders.custid 
+group by name;
+
+10-1) 구매내역이 없는사람은 0으로 출력합니당(구매액이 높은순)
+select name, nvl(sum(saleprice), 0) 구매액 from customer left join orders  
+on customer.custid = orders.custid 
+group by name
+order by 구매액 desc;
+
+// 검색한 레코드 중에 상위 몇개만 추출해야할 경우가 있다.(ex TOP10, TOP3)
+오라클에서 검색한 행의 행번호를 붙여주는 속성이 있다.
+rownum ==> 행번호 붙일때 사용하는 명령어 !!!!!!! 매우 유용하게 쓰임!!!!!!!
+**참고
+mysql 에서는 limit
+위에 질의문을 개체로 바라본다 이것을 'A'로 가정
+select name, nvl(sum(saleprice), 0) 구매액 from customer left join orders  
+on customer.custid = orders.custid 
+group by name
+order by 구매액 desc;
+
+형태)
+select rownum, name, sum from A;
+실제)
+select rownum, name, 구매액 from (select name, nvl(sum(saleprice), 0) 구매액 from customer left join orders  
+on customer.custid = orders.custid 
+group by name
+order by 구매액 desc);
+
+//위의 질의문에서 구매액이 가장 높은 3명의 정보를 출력
+위의 질의문 뒤에 where rownum <= 3 붙임
+select rownum, name, 구매액 from (select name, nvl(sum(saleprice), 0) 구매액 from customer left join orders  
+on customer.custid = orders.custid 
+group by name
+order by 구매액 desc) 
+where rownum <= 3;
+
+
+11) 고객의 이름과 고객이 구매한 도서 목록
+select distinct customer.name, bookname from book, customer, orders 
+where book.bookid = orders.bookid 
+and customer.custid = orders.custid 
+order by name;
+
+12) 도서의 가격(Book 테이블)과 판매가격(Orders 테이블)의 차이가 가장 많은 주문
+주문번호, 도서가격-판매가격을 검색
+select
+
+--------------------------------------
+
+// 차이많은거 구하는 거
+select max(price-saleprice) from orders, book 
+where orders.bookid = book.bookid
+
+//
+select * from orders, book 
+where orders.bookid = book.bookid  
+and (price-saleprice) = (차이많은거 구하는거);
+
+select * from orders, book 
+where orders.bookid = book.bookid  
+and (price-saleprice) = (select max(price-saleprice) from orders, book 
+where orders.bookid = book.bookid);
+
+13) 도서의 판매액 평균보다 자신의 구매액 평균이 더 높은 고객의 이름
+도서의 판매액 평균  // A
+select avg(saleprice) from orders;
+
+고객별 평균구매액 //B
+select name, avg(saleprice) from orders o, customer c
+where o.custid = c.custid 0
+group by name; 
+
+본질의
+ : B 중에 B의 avg가 A보다 더 큰것
+형식) select name from (B) where B.avg > (A);
+실제)
+select name from (select name, avg(saleprice) avg from orders o, customer c
+where o.custid = c.custid 
+group by name) B where B.avg > (select avg(saleprice) from orders);
+
+
+
+3.
+
+1) 박지성이 구매한 도서의 출판사와 같은 출판사에서 도서를 구매한 고객의 이름
+
+// 박지성이 구매한 출판사 // A
+select distinct publisher from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid 
+and name = '박지성';
+
+//형식 
+select name from from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid 
+and publisher in (A)
+and name != '박지성';
+
+//본질의
+select name from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid 
+and publisher in (select distinct publisher from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid 
+and name = '박지성') 
+and name != '박지성';
+
+------------------------------------------------------------
+
+// 박지성의 custid 구하기
+select custid from customer where name = '박지성';
+
+// 박지성이 구매한 도서목록
+select distinct bookid from orders 
+where custid = (select custid from customer where name = '박지성');
+
+// 박지성이 구매한 도서의 출판사
+select distinct publisher from book 
+where bookid in (select distinct bookid from orders 
+where custid = (select custid from customer where name = '박지성'));
+
+// 박지성과 같은 출판사에서 구매한 고객의 이름
+select name from book b, customer c, orders o 
+where b.bookid = o.bookid 
+and c.custid = o.custid 
+and publisher in ();
+
+select name from book b, customer c, orders o 
+where b.bookid = o.bookid 
+and c.custid = o.custid 
+and publisher some in (select name from customer 
+where publisher in (select distinct publisher from book 
+where bookid in (select distinct bookid from orders 
+where custid = (select custid from customer where name = '박지성'))));
+
+2) 두 개 이상의 서로 다른 출판사에서 도서를 구매한 고객의 이름
+
+// 고객의 이름과 구매한 도서의 출판사를 출력 //A
+select name, count(distinct publisher) cnt from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid
+group by name;
+
+// 위의 질의문에서 출판사의 수가 2개 이상인 건수만 출력
+A 중에 cnt가 2개 이상인 것 검색
+형식)
+select name from (A) 
+where cnt >= 2;
+본질의)
+select name from (select name, count(distinct publisher) cnt from customer c, book b, orders o 
+where c.custid = o.custid 
+and b.bookid = o.bookid
+group by name) 
+where cnt >= 2;
+
+
+3) 전체 고객의 30% 이상이 구매한 도서
+전체고객은 몇명? 7명
+select count(*) from customer;
+
+전체고객의 30%는 몇명? // B
+select count(*)*0.3 from customer; 
+
+판매수량이 2.1권 이상인것
+
+도서별 판매건수 // A
+(count 되는것은 orders 테이블에 어떠한 것이던 상관없다)
+select bookname, count(saleprice) cnt from book b, orders o 
+where b.bookid = o.bookid 
+group by bookname;
+ 
+본질의
+A 중에서 A의 cnt가 B보다 더 크거나 같은 것 찾기
+형식)
+select bookname from (A) where cnt >= (B);
+실제)
+select bookname from (select bookname, count(saleprice) cnt from book b, orders o 
+where b.bookid = o.bookid 
+group by bookname) where cnt >= (select count(*)*0.3 from customer);
+
+
+
+
+
+4. 
+1) 새로운 도시('스포츠 세계','대한미디어',10000원)이 마당서점에 입고되었다.
+insert into book values (12, '스포츠 세계', '대한미디어', 10000);
+
+2) '삼성당'에서 출판한 도서를 삭제하시오.
+delete book where publisher = '삼성당';
+
+3) '이상미디어'에서 출판한 도서를 삭제하시오.
+delete from orders where bookid = (selete bookid from book where publisher = '이상미디어');
+delete book where publisher = '이상미디어';
+==> 자식개체 orders 에서 참조되고 있기 때문에 삭제할 수 없다.
+
+4) 출판사 '대한미디어'를 '대한출판사'로 이름을 바꾸시오.
+update book set publisher = '대한출판사' where publisher = '대한미디어';
+
+5) (테이블 생성) 출판사에 대한 정보를 저장하는 테이블 Bookcompany(name, address, begin)를 생성하고자 한다.
+name은 기본키며 varchar(20), address는 varchar(20), begin은 date타입으로 선언하여 생성하시오.
+
+create table Bookcompany (name varchar(20) primary key, address varchar(20), begin date);
+
+6) (테이블 수정) Bookcompany 테이블에 인터넷 주소를 저장하는 webaddress 속성을 varchar(30)으로 추가하시오.
+alter table 테이블명 add 칼럼명 자료형
+
+
+alter table Bookcompany add webaddress varchar(30);
+
+6-1) bookcompany 테이블의 전화번호를 저장하는 tel 속성을 number으로 추가하시오.
+alter table Bookcompany add tel number;
+6-2) bookcompany 테이블의 tel 속성을 varchar2 로 수정하시오.
+
+7) Bookcompany 테이블에 임의의 투플 name = 한빛아카데미, address = 서울시 마포구, begin = 1993-01-01, 
+webaddress = http://hanbit.co.kr 를 삽입하시오.
+
+insert into bookcompany values ('한빛아카데미', '서울시 마포구', '1993-01-01', 'http://hanbit.co.kr');
+
+
+
+
+5. 
+1) 
+select * from customer c1 
+where not exists (select * from orders c2 where c1.custid = c2.custid);
+
+==> 구매이력이 없는 고객의 정보
+
+select * from customer c1 
+where exists (select * from orders c2 where c1.custid = c2.custid);
+
+==> 구매이력이 있는 고객의 정보
+
+// main 질의문의 개체의 애칭을 서브쿼리에서도 사용할 수 있다.
