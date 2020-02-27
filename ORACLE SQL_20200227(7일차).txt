@@ -1,0 +1,214 @@
+
+--- 20200227(목) 7일차
+
+-- 연습문제 풀이
+
+-- 1-(5)
+SELECT COUNT(DISTINCT b.publisher) FROM Customer c, Orders o, Book b
+WHERE c.custid = o.custid AND o.bookid = b.bookid
+AND c.name like '박지성';
+
+
+-- 1-(6)
+SELECT b.bookname, b.price, o.saleprice, b.price - o.saleprice "차이" FROM Orders o, Book b, Customer c
+where o.custid = c.custid and o.bookid = b.bookid
+and c.name like '박지성'
+;
+
+-- 1-(7)
+SELECT bookname FROM Book
+MINUS -- 전체 쿼리에서 아래의 쿼리를 제외한다.(차집합)
+SELECT b.bookname FROM Orders o, Book b, Customer c
+where o.custid = c.custid and o.bookid = b.bookid
+and c.name like '박지성'; -- 전체가 하나의 쿼리가 된다.
+
+SELECT DISTINCT b.bookname FROM Orders o, Book b, Customer c
+where o.custid = c.custid and o.bookid = b.bookid
+and c.name NOT like '박지성';
+
+-- 2-(9)
+-- Join은 하드웨어 퍼포먼스를 너무 많이 잡아 먹는다. => 가급적 다른 방법이 있으면 다른 방법을 사용한다.
+
+
+SELECT sum(saleprice) , avg(saleprice), max(saleprice), min(saleprice) FROM Orders;
+
+-- 2-(10)
+SELECT customer.name, sum(Orders.saleprice) FROM Customer , Orders
+WHERE customer.custid = orders.custid
+GROUP BY customer.name
+;
+
+SELECT custid, SUM(saleprice) FROM Orders
+GROUP BY custid
+;
+
+-- 스칼라 부속질의 - SELECT 부속질의 (특정 테이블의 한 가지 수치 ex - max 등을 가져와야 하는 경우)
+-- 인라인 뷰 - FROM 부속질의 (특정 테이블을 변환해서 가져와야 하는 경우)
+-- 중첩질의 - WHERE 부속질의 (통계치 max, min 등을 구하는 경우)
+-- => 다 들어갈 수 있다.
+
+-- 부속질의... FROM....
+
+SELECT * FROM (
+SELECT custid, saleprice FROM Orders);
+
+SELECT custid, saleprice FROM Orders;
+
+SELECT * FROM(
+SELECT custid cc , saleprice ss FROM Orders);
+
+SELECT * 
+FROM(
+    SELECT custid cc , saleprice ss 
+    FROM Orders 
+    WHERE custid = 1) t1 , Customer c1
+WHERE t1.cc = c1.custid
+; 
+-- 서브쿼리에 별칭을 붙여주면 관리가 편하다.
+-- PRIMARY키와 FOREIGN키의 이름은 똑같이 지어주는 것이 관례이다.
+-- 아닌 경우도 있겠지만
+
+SELECT * FROM Customer WHERE custid <= 2; -- 이 쿼리를 테이블로 이용한다면?
+
+SELECT c1.name , sum(o1.saleprice), count(*), avg(o1.saleprice) 주문횟수 FROM 
+(SELECT * FROM Customer WHERE custid <= 2) c1, Orders o1
+where c1.custid = o1.custid 
+GROUP BY c1.name
+;
+
+SELECT * FROM Orders
+WHERE saleprice >= (SELECT AVG(saleprice) from ORDERS)
+;
+-- 오류 나는 경우(Group Function is not allowed here--------------------
+SELECT * FROM Orders
+WHERE saleprice >= AVG(saleprice);
+
+SELECT AVG(saleprice) FROM Orders;
+
+SELECT * FROM Orders
+WHERE saleprice = (SELECT saleprice FROM Orders WHERE custid = 1); 
+-- 변수값을 넣는 것을 생각하면 됨(스칼라가 들어가야 하는데 다중 값이 들어가면 오류
+-- (Single-row subquery returns more than one row)
+
+--But,
+SELECT * FROM Orders
+WHERE saleprice >= ANY(SELECT saleprice FROM Orders WHERE custid = 1);
+-- 벡터 안의 어느 하나라도 조건을 충족하는 경우 표출
+
+SELECT * FROM Orders
+WHERE saleprice >= ALL(SELECT saleprice FROM Orders WHERE custid = 1);
+-- 벡터 안의 조건을 모두 충족하는 경우에만 표출
+
+SELECT * FROM Orders
+WHERE saleprice IN (SELECT saleprice FROM Orders WHERE custid = 1); 
+
+-- IN의 경우를 생각해보면 됨
+SELECT * FROM Orders WHERE saleprice IN (5000, 7000, 800); 
+-- 벡터 형식으로 들어감, 벡터 연산을 한다(행렬 연산?)
+-- 단일 열, 다중 행 가능(일중 배열 가능, 이중 배열 불가능)
+
+SELECT * FROM Orders WHERE saleprice NOT IN (5000, 7000, 800); 
+
+SELECT saleprice, custid FROM Orders
+WHERE custid = 1;
+
+--select 부속질의....
+-- 딱 한 개 값만 나오는 => 스칼라 부속 질의라고도 함
+--name기준으로 구할 때 동명이인
+
+SELECT (
+    SELECT c.name 
+    FROM Customer c 
+    WHERE c.custid = o1.custid) 고객명, SUM(o1.saleprice) 구매액
+FROM Orders o1
+GROUP BY o1.custid
+;
+-- custid만 나오기 때문에 다른 건 집계함수로
+
+-- 서브쿼리 활용방법 연습
+-- 7.8.10.11.12
+
+-- 2-(7)
+SELECT * FROM Orders o WHERE o.name = '박지성';
+SELECT * FROM Orders o;
+SELECT * FROM Customer c;
+SELECT * FROM Book b;
+
+SELECT * FROM Book WHERE bookid IN (SELECT bookid FROM Orders o WHERE o.custid =  
+(select custid FROM Customer c WHERE c.name = '박지성')) ;
+
+-- 2-(8)
+SELECT * FROM Customer WHERE custid NOT IN (SELECT custid FROM Orders);
+
+-- 2-(9)
+SELECT max(saleprice), avg(saleprice) FROM Orders;
+
+-- 2-(10)
+SELECT DISTINCT name, 
+(Select sum(saleprice) from Orders o WHERE o.custid = c.custid) sum, 
+(Select avg(saleprice) from Orders o WHERE o.custid = c.custid) avg
+from Customer c ORDER BY sum DESC;
+
+-----------------------정답
+
+-- 1-7
+SELECT * FROM Book;
+SELECT book.bookname FROM Book WHERE bookname
+not in(
+SELECT book.bookname FROM Book, Customer, Orders
+WHERE Orders.custid = Customer.custid
+AND Orders.bookid = Book.bookid
+AND customer.name like '박지성');
+--- MINUS 활용
+SELECT book.bookname FROM Book
+minus
+SELECT book.bookname FROM Book, Customer, Orders
+WHERE Orders.custid = Customer.custid
+AND Orders.bookid = Book.bookid
+AND customer.name like'박지성';
+
+SELECT * FROM Customer;
+SELECT name FROM Customer -- 전체 고객 리스트
+WHERE name NOT IN 
+(SELECT Customer.name FROM Customer , Orders
+WHERE Customer.custid = Orders.custid 
+);
+SELECT Customer.name FROM Customer , Orders
+WHERE Customer.custid = Orders.custid;
+
+SELECT (SELECT cs.name FROM Customer cs WHERE cs.custid = od.custid), sum(od.saleprice) FROM Orders od
+GROUP BY od.custid
+;
+
+SELECT * FROM Orders, Book 
+WHERE Orders.bookid = Book.bookid
+AND book.price - orders.saleprice = 
+(SELECT MAX(Book.price - Orders.saleprice) FROM Orders, Book
+WHERE Orders.bookid = Book.bookid
+); -- 뺀 가격이 가장 차이가 많이 나는 주문 정보
+
+SELECT MAX(Book.price - Orders.saleprice) FROM Orders, Book
+WHERE Orders.bookid = Book.bookid;
+
+SELECT custid, avg(saleprice) average FROM Orders GROUP BY custid;
+
+SELECT * FROM
+(SELECT custid, avg(saleprice) average FROM Orders GROUP BY custid
+) t1
+WHERE t1.average > (SELECT AVG(saleprice) FROM Orders);
+SELECT custid, avg(saleprice) FROM Orders GROUP BY custid; -- 고객 별 평균 금액
+
+SELECT AVG(saleprice) FROM Orders;
+
+SELECT (SELECT name FROM Customer cs WHERE cs.custid = t1.custid), t1.average FROM
+(SELECT custid, avg(saleprice) average FROM Orders GROUP BY custid
+) t1
+WHERE t1.average > (SELECT AVG(saleprice) FROM Orders); -- Customer와 t1을 조인하는게 더 나았을듯
+
+----------------편한 방법
+SELECT * FROM
+(SELECT custid, AVG(saleprice) average FROM Orders
+GROUP BY custid) t1, Customer cs
+WHERE t1.custid = cs.custid
+AND t1.average > (SELECT AVG(saleprice) FROM Orders)
+;
