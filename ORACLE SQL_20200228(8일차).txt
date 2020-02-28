@@ -1,0 +1,27 @@
+--- 20200228(금) 8일차
+
+--- CRUD
+
+SELECT * FROM Customer;
+
+INSERT INTO Customer VALUES(6, '한조', '일본', '000-777-7777'); -- 한 줄을 다 넣겠다.
+INSERT INTO Customer(custid, name) VALUES(7, '트레이서'); -- 데이터베이스는 한 줄을 기준으로 데이터가 들어가므로 다른 값은 null
+
+UPDATE Customer SET address = '한국' WHERE name LIKE '한조'; -- UPDATE 테이블명 SET 바꿀 변수명 = 바꿀 데이터 WHERE 조건
+UPDATE Customer SET address = '한국' WHERE custid = 6; -- 웬만하면 key값을 변경해서 UPDATE를 한다.
+
+DELETE FROM Customer WHERE custid = 7;
+
+ROLLBACK;
+
+-- 프로그램 API와 문법이 있다.
+-- 문법을 배우는 중이고 API는 찾아서 하면 된다.(ex - Java)
+-- 프로그래머들은 API를 웬만하면 외우지 않는다.
+
+-- 데이터베이스 프로그래밍
+-- ex - 엑셀에도 스크립트가 있다, 단순히 클릭이 아닌 VBA
+
+-- 데이터 모델링 - 영구적으로 저장해야 할 데이터들 => 테이블을 어떻게 구성해야 하는가?(CREATE), (테이블 몇 개, 회원 몇 명) 
+
+-- 정규화(정보처리기사 100% 출제) : 값의 중복, ex - id가 아닌 문자열이 들어갈 경우 정보가 중복이 됨.
+
